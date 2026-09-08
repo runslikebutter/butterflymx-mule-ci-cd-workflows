@@ -1,0 +1,56 @@
+name: Publish artifact to Exchange
+
+on:
+  workflow_call:
+    inputs:
+      GITHUB_ENVIRONMENT:
+        required: true
+        type: string
+    secrets:
+      CONNECTED_APP_CLIENT_ID:
+        required: true
+      CONNECTED_APP_CLIENT_SECRET:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.GITHUB_ENVIRONMENT }}
+    outputs:
+      RELEASE_VERSION: ${{ steps.strip-snapshot.outputs.RELEASE_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: 8
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      # Anypoint Exchange's Maven repo is release-only - it rejects -SNAPSHOT
+      # versions outright and refuses to republish an existing version. So each
+      # build gets a fresh, unique release version, bumped only in the CI
+      # workspace - pom.xml itself is never committed back to git.
+      - name: Strip SNAPSHOT and set a unique release version
+        id: strip-snapshot
+        run: |
+          baseVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
+          releaseVersion="${baseVersion}-${GITHUB_RUN_NUMBER}"
+          mvn versions:set -DnewVersion="$releaseVersion" -DgenerateBackupPoms=false
+          echo "RELEASE_VERSION=$releaseVersion" >> "$GITHUB_OUTPUT"
+          echo "Publishing as $releaseVersion"
+
+      - name: Publish to Exchange
+        run: |
+          mvn deploy --settings .maven/settings.xml -DskipMunitTests \
+          -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
+          -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"

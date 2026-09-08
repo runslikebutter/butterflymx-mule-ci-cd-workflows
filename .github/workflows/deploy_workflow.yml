@@ -1,0 +1,74 @@
+name: Deploy app to CloudHub 2.0
+
+on:
+  workflow_call:
+    inputs:
+      GITHUB_ENVIRONMENT:
+        required: true
+        type: string
+      RELEASE_VERSION:
+        required: true
+        type: string
+      ANYPOINT_ENV:
+        required: true
+        type: string
+      MULE_ENV:
+        required: true
+        type: string
+      APPLICATION_NAME:
+        required: true
+        type: string
+      REGION:
+        required: true
+        type: string
+      RELEASE_CHANNEL:
+        required: false
+        type: string
+        default: "NONE"
+    secrets:
+      CONNECTED_APP_CLIENT_ID:
+        required: true
+      CONNECTED_APP_CLIENT_SECRET:
+        required: true
+      DECRYPTION_KEY:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.GITHUB_ENVIRONMENT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: 8
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      # Each job runs on a fresh checkout, so re-apply the exact release
+      # version the build job already published to Exchange - this deploy
+      # step pulls that same artifact, it does not rebuild/republish it.
+      - name: Re-apply release version published by build job
+        run: mvn versions:set -DnewVersion="${{ inputs.RELEASE_VERSION }}" -DgenerateBackupPoms=false
+
+      - name: Deploy to CloudHub 2.0 (${{ inputs.GITHUB_ENVIRONMENT }})
+        run: |
+          mvn deploy --settings .maven/settings.xml -DskipMunitTests -DmuleDeploy \
+          -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
+          -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
+          -Ddecryption.key="${{ secrets.DECRYPTION_KEY }}" \
+          -Danypoint.env="${{ inputs.ANYPOINT_ENV }}" \
+          -Dmule.env="${{ inputs.MULE_ENV }}" \
+          -DapplicationName="${{ inputs.APPLICATION_NAME }}" \
+          -Dregion="${{ inputs.REGION }}" \
+          -DreleaseChannel="${{ inputs.RELEASE_CHANNEL }}"
