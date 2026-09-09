@@ -11,6 +11,10 @@ on:
         required: true
       CONNECTED_APP_CLIENT_SECRET:
         required: true
+    outputs:
+      RELEASE_VERSION:
+        description: "The unique release version published to Exchange (SNAPSHOT stripped)"
+        value: ${{ jobs.build.outputs.RELEASE_VERSION }}
 
 jobs:
   build:
@@ -54,3 +58,20 @@ jobs:
           mvn deploy --settings .maven/settings.xml -DskipMunitTests \
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"
+
+      # Keeps a local, run-scoped copy of the exact jar that was published,
+      # stamped with the commit hash - useful for incident review/rollback
+      # without having to re-pull it from Exchange.
+      - name: Stamp artifact file name with commit hash
+        run: |
+          artifactName1=$(ls target/*.jar | head -1)
+          commitHash=$(git rev-parse --short "$GITHUB_SHA")
+          artifactName2=$(ls target/*.jar | head -1 | sed "s/.jar/-$commitHash.jar/g")
+          mv "$artifactName1" "$artifactName2"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-${{ inputs.GITHUB_ENVIRONMENT }}-${{ github.run_number }}
+          path: target/*.jar
+          retention-days: 30
