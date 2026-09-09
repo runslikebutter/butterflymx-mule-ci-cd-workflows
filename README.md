@@ -16,7 +16,7 @@ workflows and call into these via `uses:`.
 ```yaml
 jobs:
   build:
-    uses: runslikebutter/butterflymx-mule-ci-cd-workflows/.github/workflows/build_workflow.yml@v1
+    uses: runslikebutter/butterflymx-mule-ci-cd-workflows/.github/workflows/build_workflow.yml@main
     with:
       GITHUB_ENVIRONMENT: "Sandbox"
     secrets:
@@ -25,7 +25,7 @@ jobs:
 
   deploy:
     needs: build
-    uses: runslikebutter/butterflymx-mule-ci-cd-workflows/.github/workflows/deploy_workflow.yml@v1
+    uses: runslikebutter/butterflymx-mule-ci-cd-workflows/.github/workflows/deploy_workflow.yml@main
     with:
       GITHUB_ENVIRONMENT: "Sandbox"
       RELEASE_VERSION: "${{ needs.build.outputs.RELEASE_VERSION }}"
@@ -47,9 +47,9 @@ don't generate that config.
 
 ## Versioning
 
-Pin consumers to a tag (`@v1`, `@v1.1`, ...), never `@main` — a change here
-would otherwise immediately affect every app's pipeline with no chance to
-opt in.
+Consumers reference `@main` directly, so any change here takes effect for
+every app's pipeline on their next run — there is no per-app opt-in. Review
+changes to these workflows accordingly.
 
 ## Access
 
