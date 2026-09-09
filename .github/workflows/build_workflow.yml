@@ -48,7 +48,10 @@ jobs:
         id: strip-snapshot
         run: |
           baseVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
-          releaseVersion="${baseVersion}-${GITHUB_RUN_NUMBER}"
+          # Include RUN_ATTEMPT too - RUN_NUMBER alone stays identical across
+          # re-runs of the same workflow run, which Exchange rejects as a
+          # duplicate version once any attempt has already published it.
+          releaseVersion="${baseVersion}-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           mvn versions:set -DnewVersion="$releaseVersion" -DgenerateBackupPoms=false
           echo "RELEASE_VERSION=$releaseVersion" >> "$GITHUB_OUTPUT"
           echo "Publishing as $releaseVersion"
