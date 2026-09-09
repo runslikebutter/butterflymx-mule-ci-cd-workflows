@@ -15,7 +15,7 @@ on:
       MULE_ENV:
         required: true
         type: string
-      APPLICATION_NAME:
+      DEPLOYMENT_NAME:
         required: true
         type: string
       REGION:
@@ -69,6 +69,6 @@ jobs:
           -Ddecryption.key="${{ secrets.DECRYPTION_KEY }}" \
           -Danypoint.env="${{ inputs.ANYPOINT_ENV }}" \
           -Dmule.env="${{ inputs.MULE_ENV }}" \
-          -DapplicationName="${{ inputs.APPLICATION_NAME }}" \
+          -DdeploymentName="${{ inputs.DEPLOYMENT_NAME }}" \
           -Dregion="${{ inputs.REGION }}" \
           -DreleaseChannel="${{ inputs.RELEASE_CHANNEL }}"
