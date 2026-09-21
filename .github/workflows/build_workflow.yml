@@ -51,7 +51,13 @@ jobs:
           # Include RUN_ATTEMPT too - RUN_NUMBER alone stays identical across
           # re-runs of the same workflow run, which Exchange rejects as a
           # duplicate version once any attempt has already published it.
-          releaseVersion="${baseVersion}-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          # GITHUB_RUN_NUMBER is scoped per workflow FILE (dev_workflow.yml vs
+          # prod_workflow.yml each have their own independent sequence), so two
+          # different environments can land on the same run number/attempt and
+          # collide on the same Exchange asset version - include the environment
+          # name too so dev and prod can never collide.
+          envSlug=$(echo "${{ inputs.GITHUB_ENVIRONMENT }}" | tr '[:upper:]' '[:lower:]')
+          releaseVersion="${baseVersion}-${envSlug}-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           mvn versions:set -DnewVersion="$releaseVersion" -DgenerateBackupPoms=false
           echo "RELEASE_VERSION=$releaseVersion" >> "$GITHUB_OUTPUT"
           echo "Publishing as $releaseVersion"
