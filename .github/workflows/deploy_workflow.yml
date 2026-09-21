@@ -25,6 +25,9 @@ on:
         required: false
         type: string
         default: "NONE"
+      MULE_VERSION:
+        required: true
+        type: string
     secrets:
       CONNECTED_APP_CLIENT_ID:
         required: true
@@ -71,4 +74,5 @@ jobs:
           -Dmule.env="${{ inputs.MULE_ENV }}" \
           -DdeploymentName="${{ inputs.DEPLOYMENT_NAME }}" \
           -Dregion="${{ inputs.REGION }}" \
-          -DreleaseChannel="${{ inputs.RELEASE_CHANNEL }}"
+          -DreleaseChannel="${{ inputs.RELEASE_CHANNEL }}" \
+          -Dapp.runtime="${{ inputs.MULE_VERSION }}"
