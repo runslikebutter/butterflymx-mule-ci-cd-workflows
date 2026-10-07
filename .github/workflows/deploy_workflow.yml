@@ -51,6 +51,22 @@ jobs:
           distribution: "zulu"
           java-version: 8
 
+      # ubuntu-latest moved to Maven 3.10.0 (runner image 20261004.327), which
+      # mule-maven-plugin 4.5.3 can't run on (NoSuchMethodError in
+      # DefaultMirrorSelector). Pin the last Maven version CI built with.
+      - name: Set up Maven 3.9.16
+        env:
+          MAVEN_VERSION: "3.9.16"
+        run: |
+          base="https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/maven.tar.gz" "$base"
+          echo "$(curl -fsSL --retry 3 "$base.sha512" | cut -d' ' -f1)  $RUNNER_TEMP/maven.tar.gz" | sha512sum -c -
+          tar -xzf "$RUNNER_TEMP/maven.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-maven-${MAVEN_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Show Maven version
+        run: mvn -v
+
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
